@@ -25,8 +25,6 @@ import net.openhft.lang.io.Bytes;
  * DirectBitSet with input validations, This class is not thread safe
  */
 public class SingleThreadedDirectBitSet implements DirectBitSet {
-
-    public static final long NOT_FOUND = -1L;
     private final Bytes bytes;
     private final long longLength;
 
@@ -57,13 +55,11 @@ public class SingleThreadedDirectBitSet implements DirectBitSet {
             throw new IndexOutOfBoundsException();
         long byteIndex = longIndex << 3;
         // only 6 lowest-order bits used, JLS 15.19
-        long mask = (1L << bitIndex);
-
+        long mask = 1L << bitIndex;
         long l = bytes.readLong(byteIndex);
         long l2 = l ^ mask;
         bytes.writeLong(byteIndex, l2);
         return this;
-
     }
 
     @Override
@@ -80,7 +76,6 @@ public class SingleThreadedDirectBitSet implements DirectBitSet {
             if ((fromIndex & 0x3F) != 0) {
                 long fromByteIndex = fromLongIndex << 3;
                 long mask = (~0L) << fromIndex;
-
                 long l = bytes.readLong(fromByteIndex);
                 long l2 = l ^ mask;
                 bytes.writeLong(fromByteIndex, l2);
@@ -89,42 +84,26 @@ public class SingleThreadedDirectBitSet implements DirectBitSet {
 
             if ((exclusiveToIndex & 0x3F) == 0) {
                 for (long i = firstFullLongIndex; i <= toLongIndex; i++) {
-
-                    long l = bytes.readLong(i << 3);
-                    long l2 = ~l;
-                    bytes.writeLong(i << 3, l2);
-                    break;
-
+                    bytes.writeLong(i << 3, ~bytes.readLong(i << 3));
                 }
             } else {
                 for (long i = firstFullLongIndex; i < toLongIndex; i++) {
-
-                    long l = bytes.readLong(i << 3);
-                    long l2 = ~l;
-                    bytes.writeLong(i << 3, l2);
-                    break;
-
+                    bytes.writeLong(i << 3, ~bytes.readLong(i << 3));
                 }
 
                 long toByteIndex = toLongIndex << 3;
                 // >>> ~toIndex === >>> (63 - (toIndex & 0x3F))
                 long mask = (~0L) >>> ~toIndex;
-
                 long l = bytes.readLong(toByteIndex);
                 long l2 = l ^ mask;
                 bytes.writeLong(toByteIndex, l2);
-                return this;
-
             }
         } else {
             long byteIndex = fromLongIndex << 3;
             long mask = ((~0L) << fromIndex) & ((~0L) >>> ~toIndex);
-
             long l = bytes.readLong(byteIndex);
             long l2 = l ^ mask;
             bytes.writeLong(byteIndex, l2);
-            return this;
-
         }
         return this;
     }
@@ -136,13 +115,11 @@ public class SingleThreadedDirectBitSet implements DirectBitSet {
             throw new IndexOutOfBoundsException();
         long byteIndex = longIndex << 3;
         long mask = 1L << bitIndex;
-
         long l = bytes.readLong(byteIndex);
         if ((l & mask) != 0) return this;
         long l2 = l | mask;
         bytes.writeLong(byteIndex, l2);
         return this;
-
     }
 
     @Override
@@ -152,13 +129,12 @@ public class SingleThreadedDirectBitSet implements DirectBitSet {
             throw new IndexOutOfBoundsException();
         long byteIndex = longIndex << 3;
         long mask = 1L << bitIndex;
-
         long l = bytes.readLong(byteIndex);
-        if ((l & mask) != 0) return false;
         long l2 = l | mask;
+        if (l == l2)
+            return false;
         bytes.writeLong(byteIndex, l2);
         return true;
-
     }
 
 
@@ -181,11 +157,9 @@ public class SingleThreadedDirectBitSet implements DirectBitSet {
             if ((fromIndex & 0x3F) != 0) {
                 long fromByteIndex = fromLongIndex << 3;
                 long mask = (~0L) << fromIndex;
-
                 long l = bytes.readLong(fromByteIndex);
                 long l2 = l | mask;
                 bytes.writeLong(fromByteIndex, l2);
-
                 firstFullLongIndex++;
             }
 
@@ -201,22 +175,16 @@ public class SingleThreadedDirectBitSet implements DirectBitSet {
                 long toByteIndex = toLongIndex << 3;
                 // >>> ~toIndex === >>> (63 - (toIndex & 0x3F))
                 long mask = (~0L) >>> ~toIndex;
-
                 long l = bytes.readLong(toByteIndex);
                 long l2 = l | mask;
                 bytes.writeLong(toByteIndex, l2);
-                return this;
-
             }
         } else {
             long byteIndex = fromLongIndex << 3;
             long mask = ((~0L) << fromIndex) & ((~0L) >>> ~toIndex);
-
             long l = bytes.readLong(byteIndex);
             long l2 = l | mask;
             bytes.writeLong(byteIndex, l2);
-            return this;
-
         }
         return this;
     }
@@ -241,13 +209,11 @@ public class SingleThreadedDirectBitSet implements DirectBitSet {
             throw new IndexOutOfBoundsException();
         long byteIndex = longIndex << 3;
         long mask = 1L << bitIndex;
-
         long l = bytes.readLong(byteIndex);
         if ((l & mask) == 0) return this;
         long l2 = l & ~mask;
         bytes.writeLong(byteIndex, l2);
         return this;
-
     }
 
     @Override
@@ -267,8 +233,6 @@ public class SingleThreadedDirectBitSet implements DirectBitSet {
                 long l = bytes.readLong(fromByteIndex);
                 long l2 = l & mask;
                 bytes.writeLong(fromByteIndex, l2);
-
-
                 firstFullLongIndex++;
             }
 
@@ -284,22 +248,16 @@ public class SingleThreadedDirectBitSet implements DirectBitSet {
                 long toByteIndex = toLongIndex << 3;
                 // >>> ~toIndex === >>> (63 - (toIndex & 0x3F))
                 long mask = ~((~0L) >>> ~toIndex);
-
                 long l = bytes.readLong(toByteIndex);
                 long l2 = l & mask;
                 bytes.writeLong(toByteIndex, l2);
-                return this;
-
             }
         } else {
             long byteIndex = fromLongIndex << 3;
             long mask = (~((~0L) << fromIndex)) | (~((~0L) >>> ~toIndex));
-
             long l = bytes.readLong(byteIndex);
             long l2 = l & mask;
             bytes.writeLong(byteIndex, l2);
-            return this;
-
         }
         return this;
     }
@@ -500,8 +458,8 @@ public class SingleThreadedDirectBitSet implements DirectBitSet {
 
     @Override
     public long cardinality() {
-        long count = Long.bitCount(bytes.readLong(0));
-        for (long i = 1; i < longLength; i++) {
+        long count = 0;
+        for (long i = 0; i < longLength; i++) {
             count += Long.bitCount(bytes.readLong(i << 3));
         }
         return count;
